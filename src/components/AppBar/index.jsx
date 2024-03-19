@@ -19,14 +19,15 @@ import Profiles from './Menus/Profiles'
 const AppBar = () => {
   return (
     <>
-      <Box px={0.5} sx={{
+      <Box sx={{
         width: '100%',
         height: (theme) => theme.layoutCustom.appBarHeight,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         gap: 2,
-        overflowX: 'auto'
+        overflowX: 'auto',
+        px: 2
       }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <AppsIcon sx={{ color: 'primary.main' }}/>

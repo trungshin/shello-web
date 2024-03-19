@@ -32,7 +32,7 @@ const Profiles = () => {
           aria-expanded={open ? 'true' : undefined}
         >
           <Avatar
-            sx={{ width: 30, height: 30 }}
+            sx={{ width: 34, height: 34 }}
             alt='trungshin'
             src='https://gcs.tripi.vn/public-tripi/tripi-feed/img/474250ZNp/photo-6-16675562029442139900239-1667630383932-16676303841561657948359.jpg'
           />
