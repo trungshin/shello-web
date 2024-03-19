@@ -1,6 +1,6 @@
 import Box from '@mui/material/Box'
 
-function BoardBar() {
+const BoardBar = () => {
   return (
     <>
       <Box sx={{
