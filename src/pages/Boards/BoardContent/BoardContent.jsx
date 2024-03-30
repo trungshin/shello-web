@@ -12,14 +12,13 @@ import {
   defaultDropAnimationSideEffects,
   closestCorners,
   pointerWithin,
-  rectIntersection,
-  getFirstCollision,
-  closestCenter
+  getFirstCollision
 } from '@dnd-kit/core'
 import { arrayMove } from '@dnd-kit/sortable'
 import Column from './ListColumns/Column/Column'
 import Card from './ListColumns/Column/ListCards/Card/Card'
-import { cloneDeep } from 'lodash'
+import { cloneDeep, isEmpty } from 'lodash'
+import { generatePlaceholderCards } from '~/utils/formatters'
 
 const ACTIVE_DRAG_ITEM_TYPE = {
   COLUMN: 'ACTIVE_DRAG_ITEM_TYPE_COLOUMN',
@@ -80,6 +79,10 @@ const BoardContent = ({ board }) => {
         // Delete Card in Column Active
         nextActiveColumn.cards = nextActiveColumn.cards.filter(card => card._id !== activeDraggingCardId)
 
+        if (isEmpty(nextActiveColumn.cards)) {
+          nextActiveColumn.cards = [generatePlaceholderCards(nextActiveColumn)]
+        }
+
         // Update cardOrderIds array
         nextActiveColumn.cardOrderIds = nextActiveColumn.cards.map(card => card._id)
       }
@@ -94,6 +97,9 @@ const BoardContent = ({ board }) => {
           0,
           { ...activeDraggingCardData, columnId: nextOverColumn._id } // rebuild activeDraggingCardData
         )
+
+        // Delete the FE_PlaceholderCard if it exists
+        nextOverColumn.cards = nextOverColumn.cards.filter(card => !card.FE_PlaceholderCard)
 
         // Update cardOrderIds array
         nextOverColumn.cardOrderIds = nextOverColumn.cards.map(card => card._id)
@@ -250,19 +256,16 @@ const BoardContent = ({ board }) => {
     // Find intersection and collision points with the pointer
     const pointerIntersections = pointerWithin(args)
 
-    // The collision detection algorithm will return an array of collisions
-    const intersections = pointerIntersections?.length > 0
-      ? pointerIntersections
-      : rectIntersection(args)
+    if (!pointerIntersections?.length) return
 
-    // Find the first overId in the intersections array above
-    let overId = getFirstCollision(intersections, 'id')
+    // Find the first overId in the pointerIntersections array above
+    let overId = getFirstCollision(pointerIntersections, 'id')
     if (overId) {
-      // If over is Column, it will find the closest cardId within that collision area based on the closestCenter collision detection algorithm.
+      // If over is Column, it will find the closest cardId within that collision area based on the closestCornor collision detection algorithm.
       const checkColumn = orderedColumns.find(col => col._id === overId)
       if (checkColumn) {
         // console.log('overId before: ', overId)
-        overId = closestCenter({
+        overId = closestCorners({
           ...args,
           droppableContainers: args.droppableContainers.filter(container => container.id !== overId &&
             checkColumn?.cardOrderIds.includes(container.id)
