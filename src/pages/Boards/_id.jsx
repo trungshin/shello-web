@@ -5,7 +5,7 @@ import BoardBar from './BoardBar/BoardBar'
 import BoardContent from './BoardContent/BoardContent'
 import { generatePlaceholderCards } from '~/utils/formatters'
 import { isEmpty } from 'lodash'
-import { fetchBoardsDetailAPI, createColumnAPI, createCardAPI } from '~/apis'
+import { fetchBoardsDetailAPI, createColumnAPI, createCardAPI, updateBoardsDetailAPI } from '~/apis'
 
 const Board = () => {
   const [board, setBoard] = useState()
@@ -60,11 +60,29 @@ const Board = () => {
     setBoard(newBoard)
   }
 
+  // Call API and handle when drag and drop columns end
+  const moveColumns = async (dndOrderedColumns) => {
+    const dndOrderedColumnsIds = dndOrderedColumns.map(col => col._id)
+
+    const newBoard = { ...board }
+    newBoard.columns = dndOrderedColumns
+    newBoard.columnOrderIds = dndOrderedColumnsIds
+    setBoard(newBoard)
+
+    // Call API to update the order of columns
+    await updateBoardsDetailAPI(newBoard._id, { columnOrderIds: dndOrderedColumnsIds })
+  }
+
   return (
     <Container disableGutters maxWidth={false} sx={{ height: '100vh' }}>
       <AppBar />
       <BoardBar board={board} />
-      <BoardContent board={board} createNewColumn={createNewColumn} createNewCard={createNewCard}/>
+      <BoardContent
+        board={board}
+        createNewColumn={createNewColumn}
+        createNewCard={createNewCard}
+        moveColumns={moveColumns}
+      />
     </Container>
   )
 }

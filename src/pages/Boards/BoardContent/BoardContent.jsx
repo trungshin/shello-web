@@ -25,7 +25,7 @@ const ACTIVE_DRAG_ITEM_TYPE = {
   CARD: 'ACTIVE_DRAG_ITEM_TYPE_CARD'
 }
 
-const BoardContent = ({ board, createNewColumn, createNewCard }) => {
+const BoardContent = ({ board, createNewColumn, createNewCard, moveColumns }) => {
   // Require the mouse to move by 10 pixels before activating, Block click event
   const mouseSensor = useSensor(MouseSensor, { activationConstraint: { distance: 10 } })
 
@@ -227,7 +227,8 @@ const BoardContent = ({ board, createNewColumn, createNewCard }) => {
 
         // Use arrayMove to rearrange the original Columns array
         const dndOrderedColumns = arrayMove(orderedColumns, oldColumnIndex, newColumnIndex)
-        // const dndOrderedColumnsIds = dndOrderedColumns.map(col => col._id)
+
+        moveColumns(dndOrderedColumns)
 
         // Update the original state columns after dragging and dropping
         setOrderedColumns(dndOrderedColumns)
