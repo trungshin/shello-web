@@ -6,21 +6,26 @@ import NoteAddIcon from '@mui/icons-material/NoteAdd'
 import { SortableContext, horizontalListSortingStrategy } from '@dnd-kit/sortable'
 import TextField from '@mui/material/TextField'
 import CloseIcon from '@mui/icons-material/Close'
-import InputAdornment from '@mui/material/InputAdornment'
 import { toast } from 'react-toastify'
 
-const ListColumns = ({ columns }) => {
+const ListColumns = ({ columns, createNewColumn, createNewCard }) => {
   const [newColumnForm, setNewColumnForm] = useState(false)
   const toggleNewColumnForm = () => setNewColumnForm(!newColumnForm)
 
   const [newColumnTitle, setNewColumnTitle] = useState('')
-  const addNewColumn = () => {
+  const addNewColumn = async () => {
     if (!newColumnTitle) {
       toast.error('Please Enter Column Title!')
       return
     }
 
-    // Call API
+    // Create column data to call API
+    const newColumnData = {
+      title: newColumnTitle
+    }
+
+    await createNewColumn(newColumnData)
+
     // Close newColumnForm state & clear Input
     toggleNewColumnForm()
     setNewColumnTitle('')
@@ -37,7 +42,7 @@ const ListColumns = ({ columns }) => {
         overflowY: 'hidden',
         '&::-webkit-scrollbar-track': { m: 2 }
       }}>
-        {columns?.map(column => <Column key={column._id} column={column} /> )}
+        {columns?.map(column => <Column key={column._id} column={column} createNewCard={createNewCard} /> )}
 
         {/* Box add new column */}
         {!newColumnForm
