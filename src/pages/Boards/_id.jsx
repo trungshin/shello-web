@@ -10,11 +10,13 @@ import { fetchBoardsDetailAPI,
   createCardAPI,
   updateBoardsDetailAPI,
   updateColumnDetailAPI,
-  updateCardToDifferentColumnAPI } from '~/apis'
+  updateCardToDifferentColumnAPI,
+  deleteColumnAPI } from '~/apis'
 import { sortOrder } from '~/utils/sorts'
 import Box from '@mui/material/Box'
 import CircularProgress from '@mui/material/CircularProgress'
 import Typography from '@mui/material/Typography'
+import { toast } from 'react-toastify'
 
 const Board = () => {
   const [board, setBoard] = useState(null)
@@ -133,6 +135,19 @@ const Board = () => {
     })
   }
 
+  const deleteColumn = (columnId) => {
+    // Update state boards
+    const newBoard = { ...board }
+    newBoard.columns = newBoard.columns.filter(col => col._id !== columnId)
+    newBoard.columnOrderIds = newBoard.columnOrderIds.filter(_id => _id !== columnId)
+    setBoard(newBoard)
+
+    // Call API
+    deleteColumnAPI(columnId).then(res => {
+      toast.success(res.deleteResult)
+    })
+  }
+
   if (!board) {
     return (
       <Box sx={{
@@ -161,6 +176,7 @@ const Board = () => {
         moveColumns={moveColumns}
         moveCardInSameColumn={moveCardInSameColumn}
         moveCardToDifferentColumns={moveCardToDifferentColumns}
+        deleteColumn={deleteColumn}
       />
     </Container>
   )
