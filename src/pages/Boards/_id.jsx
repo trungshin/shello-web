@@ -5,19 +5,34 @@ import BoardBar from './BoardBar/BoardBar'
 import BoardContent from './BoardContent/BoardContent'
 import { generatePlaceholderCards } from '~/utils/formatters'
 import { isEmpty } from 'lodash'
-import { fetchBoardsDetailAPI, createColumnAPI, createCardAPI, updateBoardsDetailAPI } from '~/apis'
+import { fetchBoardsDetailAPI,
+  createColumnAPI,
+  createCardAPI,
+  updateBoardsDetailAPI,
+  updateColumnDetailAPI,
+  updateCardToDifferentColumnAPI } from '~/apis'
+import { sortOrder } from '~/utils/sorts'
+import Box from '@mui/material/Box'
+import CircularProgress from '@mui/material/CircularProgress'
+import Typography from '@mui/material/Typography'
 
 const Board = () => {
-  const [board, setBoard] = useState()
+  const [board, setBoard] = useState(null)
 
   useEffect(() => {
     const boardId = '66eab4e177c6a363dc571b0c'
     fetchBoardsDetailAPI(boardId).then(board => {
-      // Drag & Drop empty column
+      // Arrange the columns in order before passing the data below the child components
+      board.columns = sortOrder(board.columns, board.columnOrderIds, '_id')
+
       board.columns.forEach(column => {
+        // Drag and drop the card into an empty column when refreshing the web page
         if (isEmpty(column.cards)) {
           column.cards = [generatePlaceholderCards(column)]
           column.cardOrderIds = [generatePlaceholderCards(column)._id]
+        } else {
+          // Arrange the cards in order before passing the data below the child components
+          column.cards = sortOrder(column.cards, column.cardOrderIds, '_id')
         }
       })
       setBoard(board)
@@ -53,15 +68,22 @@ const Board = () => {
     // Update state boards
     const newBoard = { ...board }
     const columnToUpdate = newBoard.columns.find(column => column._id === createdCard.columnId)
+
+    // Empty column have FE_PlaceholderCard
     if (columnToUpdate) {
-      columnToUpdate.cards.push(createdCard)
-      columnToUpdate.cardOrderIds.push(createdCard._id)
+      if (columnToUpdate.cards.some(card => card.FE_PlaceholderCard)) {
+        columnToUpdate.cards = [createdCard]
+        columnToUpdate.cardOrderIds = [createdCard._id]
+      } else {
+        columnToUpdate.cards.push(createdCard)
+        columnToUpdate.cardOrderIds.push(createdCard._id)
+      }
     }
     setBoard(newBoard)
   }
 
   // Call API and handle when drag and drop columns end
-  const moveColumns = async (dndOrderedColumns) => {
+  const moveColumns = (dndOrderedColumns) => {
     const dndOrderedColumnsIds = dndOrderedColumns.map(col => col._id)
 
     const newBoard = { ...board }
@@ -70,7 +92,62 @@ const Board = () => {
     setBoard(newBoard)
 
     // Call API to update the order of columns
-    await updateBoardsDetailAPI(newBoard._id, { columnOrderIds: dndOrderedColumnsIds })
+    updateBoardsDetailAPI(newBoard._id, { columnOrderIds: dndOrderedColumnsIds })
+  }
+
+  const moveCardInSameColumn = (dndOrderedCards, dndOrderedCardIds, columnId) => {
+    const newBoard = { ...board }
+    const columnToUpdate = newBoard.columns.find(col => col._id === columnId)
+    if (columnToUpdate) {
+      columnToUpdate.cards = dndOrderedCards
+      columnToUpdate.cardOrderIds = dndOrderedCardIds
+    }
+    setBoard(newBoard)
+
+    // Call API update Column
+    updateColumnDetailAPI(columnId, { cardOrderIds: dndOrderedCardIds })
+  }
+
+  /**
+   * Update the cardOrderIds array of the original column that contains it
+   * Update the cardOrderIds array of the next column
+   * Update the columnId field of the dragged card
+  **/
+  const moveCardToDifferentColumns = (currentCardId, prevColumnId, nextColumnId, dndOrderedColumns) => {
+    const dndOrderedColumnsIds = dndOrderedColumns.map(col => col._id)
+
+    const newBoard = { ...board }
+    newBoard.columns = dndOrderedColumns
+    newBoard.columnOrderIds = dndOrderedColumnsIds
+    setBoard(newBoard)
+
+    // Call API to update the order of columns
+    let preCardOrderIds = dndOrderedColumns.find(col => col._id === prevColumnId)?.cardOrderIds
+    if (preCardOrderIds[0].includes('placeholder-card')) { preCardOrderIds = [] }
+    updateCardToDifferentColumnAPI({
+      currentCardId,
+      prevColumnId,
+      preCardOrderIds,
+      nextColumnId,
+      nextCardOrderIds: dndOrderedColumns.find(col => col._id === nextColumnId)?.cardOrderIds
+    })
+  }
+
+  if (!board) {
+    return (
+      <Box sx={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 2,
+        width: '100vw',
+        height: '100vh'
+      }}
+      >
+        <CircularProgress />
+        <Typography>Loading Board...</Typography>
+      </Box>
+    )
   }
 
   return (
@@ -82,6 +159,8 @@ const Board = () => {
         createNewColumn={createNewColumn}
         createNewCard={createNewCard}
         moveColumns={moveColumns}
+        moveCardInSameColumn={moveCardInSameColumn}
+        moveCardToDifferentColumns={moveCardToDifferentColumns}
       />
     </Container>
   )

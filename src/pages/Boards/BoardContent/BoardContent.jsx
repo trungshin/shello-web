@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Box from '@mui/material/Box'
 import ListColumns from './ListColumns/ListColumns'
-import { sortOrder } from '~/utils/sorts'
 import {
   DndContext,
   MouseSensor,
@@ -25,7 +24,7 @@ const ACTIVE_DRAG_ITEM_TYPE = {
   CARD: 'ACTIVE_DRAG_ITEM_TYPE_CARD'
 }
 
-const BoardContent = ({ board, createNewColumn, createNewCard, moveColumns }) => {
+const BoardContent = ({ board, createNewColumn, createNewCard, moveColumns, moveCardInSameColumn, moveCardToDifferentColumns }) => {
   // Require the mouse to move by 10 pixels before activating, Block click event
   const mouseSensor = useSensor(MouseSensor, { activationConstraint: { distance: 10 } })
 
@@ -57,7 +56,8 @@ const BoardContent = ({ board, createNewColumn, createNewCard, moveColumns }) =>
     active,
     over,
     activeDraggingCardId,
-    activeDraggingCardData
+    activeDraggingCardData,
+    triggerFrom
   ) => {
     setOrderedColumns(preColumns => {
       // Find the overCard Index in the destination Column
@@ -103,6 +103,16 @@ const BoardContent = ({ board, createNewColumn, createNewCard, moveColumns }) =>
 
         // Update cardOrderIds array
         nextOverColumn.cardOrderIds = nextOverColumn.cards.map(card => card._id)
+      }
+
+      if (triggerFrom === 'handleDragEnd') {
+        // Call API update Column
+        moveCardToDifferentColumns(
+          activeDraggingCardId,
+          oldColumnWhenDraggingCard._id,
+          nextOverColumn._id,
+          nextColumns
+        )
       }
 
       return nextColumns
@@ -153,7 +163,8 @@ const BoardContent = ({ board, createNewColumn, createNewCard, moveColumns }) =>
         active,
         over,
         activeDraggingCardId,
-        activeDraggingCardData
+        activeDraggingCardData,
+        handleDragOver
       )
     }
   }
@@ -192,7 +203,8 @@ const BoardContent = ({ board, createNewColumn, createNewCard, moveColumns }) =>
           active,
           over,
           activeDraggingCardId,
-          activeDraggingCardData
+          activeDraggingCardData,
+          'handleDragEnd'
         )
       } else {
         // Drag and drop Card in the same Column
@@ -201,6 +213,7 @@ const BoardContent = ({ board, createNewColumn, createNewCard, moveColumns }) =>
 
         // Use arrayMove to rearrange the original Cards array
         const dndOrderedCards = arrayMove(oldColumnWhenDraggingCard?.cards, oldCardIndex, newCardIndex)
+        const dndOrderedCardIds = dndOrderedCards.map(card => card._id)
 
         setOrderedColumns(preColumns => {
           // Clone the old OrderedColumnState array into a new one to process the data and update the new OrderedColumnState.
@@ -211,9 +224,12 @@ const BoardContent = ({ board, createNewColumn, createNewCard, moveColumns }) =>
 
           // Update two new values are Card and CardOrderIds in the targetColumn
           targetColumn.cards = dndOrderedCards
-          targetColumn.cardOrderIds = dndOrderedCards.map(card => card._id)
+          targetColumn.cardOrderIds = dndOrderedCardIds
+
           return nextColumns
         })
+
+        moveCardInSameColumn(dndOrderedCards, dndOrderedCardIds, oldColumnWhenDraggingCard._id)
       }
     }
 
@@ -228,10 +244,10 @@ const BoardContent = ({ board, createNewColumn, createNewCard, moveColumns }) =>
         // Use arrayMove to rearrange the original Columns array
         const dndOrderedColumns = arrayMove(orderedColumns, oldColumnIndex, newColumnIndex)
 
-        moveColumns(dndOrderedColumns)
-
         // Update the original state columns after dragging and dropping
         setOrderedColumns(dndOrderedColumns)
+
+        moveColumns(dndOrderedColumns)
       }
     }
 
@@ -245,7 +261,8 @@ const BoardContent = ({ board, createNewColumn, createNewCard, moveColumns }) =>
   const dropAnimation = { sideEffects: defaultDropAnimationSideEffects({ styles: { active: { opacity: '0.5' } } }) }
 
   useEffect(() => {
-    setOrderedColumns(sortOrder(board?.columns, board?.columnOrderIds, '_id'))
+    // Columns have been arranged in the highest parent component (boards/_id.jsx)
+    setOrderedColumns(board.columns)
   }, [board])
 
   // Customize collision detection strategy

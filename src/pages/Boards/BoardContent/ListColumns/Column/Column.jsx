@@ -17,7 +17,6 @@ import AddCardIcon from '@mui/icons-material/AddCard'
 import Tooltip from '@mui/material/Tooltip'
 import DragHandleIcon from '@mui/icons-material/DragHandle'
 import ListCards from './ListCards/ListCards'
-import { sortOrder } from '~/utils/sorts'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import TextField from '@mui/material/TextField'
@@ -44,14 +43,14 @@ const Column = ({ column, createNewCard }) => {
   const handleClick = (e) => { setAnchorEl(e.currentTarget) }
   const handleClose = () => { setAnchorEl(null) }
 
-  // Sort Cards
-  const orderedCards = sortOrder(column?.cards, column?.cardOrderIds, '_id')
+  // Cards have been arranged in the highest parent component (boards/_id.jsx)
+  const orderedCards = column.cards
 
   const [newColumnForm, setNewCardForm] = useState(false)
   const toggleNewCardForm = () => setNewCardForm(!newColumnForm)
 
   const [newCardTitle, setNewCardTitle] = useState('')
-  const addNewCard = async () => {
+  const addNewCard = () => {
     if (!newCardTitle) {
       toast.error('Please Enter Card Title!')
       return
@@ -63,7 +62,7 @@ const Column = ({ column, createNewCard }) => {
       columnId: column._id
     }
 
-    await createNewCard(newCardData)
+    createNewCard(newCardData)
 
     // Close newCardForm state & clear Input
     toggleNewCardForm()
